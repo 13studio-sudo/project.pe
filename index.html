@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ffffff">
+<title>PROJECT-PE</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --fg:#000000;
+    --border:#000000;
+    --panel:#f4f4f4;
+    --muted:#555555;
+    --select:#d40000;
+  }
+  [data-theme="dark"]{
+    --bg:#000000;
+    --fg:#ffffff;
+    --border:#ffffff;
+    --panel:#161616;
+    --muted:#aaaaaa;
+    --select:#ff3030;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;border-radius:0;}
+  *,*::before,*::after{box-shadow:none!important;}
+  html,body{
+    height:100%;
+    width:100%;
+    overflow:hidden;
+    overscroll-behavior:none;
+    -webkit-text-size-adjust:100%;
+    -webkit-tap-highlight-color:transparent;
+  }
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Segoe UI","PingFang TC","Microsoft JhengHei",Arial,sans-serif;
+    font-size:16px;
+    line-height:1.3;
+    display:flex;
+    flex-direction:column;
+    height:100dvh;
+    -webkit-font-smoothing:antialiased;
+  }
+  button,input,textarea,select{font:inherit;color:inherit;}
+  button{cursor:pointer;}
+
+  /* desktop hides camera */
+  body[data-mobile="0"] #btnCamera{display:none!important;}
+
+  /* HEADER */
+  header{
+    flex:0 0 auto;
+    height:54px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 14px;
+    position:relative;
+    background:var(--bg);
+  }
+  header h1{
+    font-size:20px;
+    font-weight:800;
+    letter-spacing:2px;
+  }
+  .menu-btn{
+    width:40px;height:40px;
+    border:1px solid var(--border);
+    background:var(--bg);color:var(--fg);
+    display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;
+    padding:0;
+  }
+  .menu-btn span{display:block;width:20px;height:2px;background:var(--fg);}
+  .menu-panel{
+    position:absolute;top:54px;right:0;
+    width:280px;max-width:90vw;
+    background:var(--bg);border:1px solid var(--border);border-top:none;
+    z-index:60;display:none;max-height:80dvh;overflow-y:auto;
+  }
+  .menu-panel.open{display:block;}
+  .menu-row{
+    padding:14px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+  }
+  .menu-row:last-child{border-bottom:none;}
+  .menu-label{font-size:15px;font-weight:600;}
+  .toggle-group{display:flex;}
+  .toggle-group button{
+    border:1px solid var(--border);background:var(--bg);color:var(--fg);
+    padding:8px 14px;font-size:14px;border-right:none;min-width:54px;
+  }
+  .toggle-group button:last-child{border-right:1px solid var(--border);}
+  .toggle-group button.active{background:var(--fg);color:var(--bg);}
+  .menu-row .full-btn{
+    width:100%;border:1px solid var(--border);background:var(--bg);color:var(--fg);
+    padding:12px;font-size:15px;text-align:center;
+  }
+  .menu-row.stack{flex-direction:column;align-items:stretch;}
+  .lib-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .lib-thumb{
+    width:48px;height:48px;border:1px solid var(--border);background:var(--panel);
+    background-size:contain;background-position:center;background-repeat:no-repeat;position:relative;
+  }
+  .lib-thumb .x{
+    position:absolute;top:0;right:0;width:18px;height:18px;
+    background:var(--bg);color:var(--fg);border:1px solid var(--border);
+    font-size:12px;line-height:16px;text-align:center;padding:0;
+  }
+  .lib-empty{font-size:13px;color:var(--muted);padding:6px 0 0;}
+
+  /* TABS */
+  .tabs{flex:0 0 auto;height:46px;display:flex;border-bottom:1px solid var(--border);}
+  .tab{
+    flex:1;border:none;border-right:1px solid var(--border);
+    background:var(--bg);color:var(--fg);font-size:14px;font-weight:600;padding:0 6px;
+  }
+  .tab:last-child{border-right:none;}
+  .tab.active{background:var(--fg);color:var(--bg);}
+
+  /* ACTION BAR */
+  .actions{
+    flex:0 0 auto;border-bottom:1px solid var(--border);
+    padding:8px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;
+  }
+  .actions button{
+    border:1px solid var(--border);background:var(--bg);color:var(--fg);
+    padding:10px 8px;font-size:13px;font-weight:600;flex:1 1 0;white-space:nowrap;min-width:0;
+  }
+  .actions button.primary{background:var(--fg);color:var(--bg);}
+  .actions button:disabled{opacity:.4;}
+
+  /* EDITOR */
+  .stage{
+    flex:1 1 auto;position:relative;overflow:hidden;background:var(--panel);min-height:0;
+  }
+  .canvas{
+    position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    background:#ffffff;overflow:hidden;touch-action:none;
+  }
+  .canvas.transparent{
+    background-image:
+      linear-gradient(45deg,#ddd 25%,transparent 25%),
+      linear-gradient(-45deg,#ddd 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#ddd 75%),
+      linear-gradient(-45deg,transparent 75%,#ddd 75%);
+    background-size:16px 16px;
+    background-position:0 0,0 8px,8px -8px,-8px 0;
+  }
+  .canvas img.bg{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
+  .item{
+    position:absolute;border:1px dashed transparent;
+    touch-action:none;user-select:none;-webkit-user-select:none;
+  }
+  .item.selected{border-color:var(--select);}
+  .item img{width:100%;height:100%;display:block;pointer-events:none;}
+  .item img.cover{object-fit:cover;}
+  .item .text-content{
+    width:100%;height:100%;
+    display:flex;align-items:center;justify-content:center;
+    text-align:center;word-break:break-word;overflow:hidden;
+    padding:2px;pointer-events:none;line-height:1.1;
+  }
+  .item .slot-ph{
+    width:100%;height:100%;
+    display:flex;align-items:center;justify-content:center;
+    text-align:center;font-size:12px;font-weight:700;letter-spacing:1px;
+    color:#ffffff;background:rgba(0,0,0,.35);border:1px dashed #ffffff;
+    pointer-events:none;padding:4px;
+  }
+  .item .handle{
+    position:absolute;width:18px;height:18px;
+    background:var(--bg);border:2px solid var(--select);display:none;
+  }
+  .item.selected .handle{display:block;}
+  .item .h-br{bottom:-9px;right:-9px;cursor:nwse-resize;}
+  .item .h-del{
+    top:-9px;right:-9px;background:var(--select);border-color:var(--select);color:#fff;
+    font-size:13px;line-height:14px;text-align:center;font-weight:700;
+  }
+
+  .empty{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:24px;color:var(--muted);font-size:15px;
+  }
+
+  /* THUMBS */
+  .thumbs{
+    flex:0 0 auto;height:64px;border-top:1px solid var(--border);
+    display:flex;overflow-x:auto;padding:6px;gap:6px;background:var(--bg);
+  }
+  .thumbs.hidden{display:none;}
+  .thumb{
+    height:50px;width:50px;border:1px solid var(--border);
+    object-fit:cover;flex:0 0 auto;background:var(--panel);
+  }
+  .thumb.active{outline:2px solid var(--fg);outline-offset:-2px;}
+
+  /* TEMPLATE PICKER (TAB 2) */
+  .tpl-grid{position:absolute;inset:0;overflow-y:auto;padding:14px;}
+  .tpl-section{margin-bottom:18px;}
+  .tpl-section h3{
+    font-size:13px;font-weight:700;letter-spacing:1px;
+    margin-bottom:8px;color:var(--muted);text-transform:uppercase;
+  }
+  .tpl-row{display:flex;flex-direction:column;gap:8px;}
+  .tpl-card{
+    border:1px solid var(--border);background:var(--bg);color:var(--fg);
+    padding:8px;display:flex;align-items:center;gap:12px;text-align:left;
+    width:100%;
+  }
+  .tpl-preview{
+    flex:0 0 auto;height:96px;
+    position:relative;overflow:hidden;background:#ddd;
+  }
+  .tpl-preview .ph,.tpl-preview .tx,.tpl-preview .wm{
+    position:absolute;display:flex;align-items:center;justify-content:center;
+    font-size:7px;color:rgba(255,255,255,.95);text-align:center;
+    border:1px dashed rgba(255,255,255,.7);padding:1px;letter-spacing:.5px;
+  }
+  .tpl-preview .ph{background:rgba(255,255,255,.18);}
+  .tpl-meta{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .tpl-name{font-size:15px;font-weight:700;}
+  .tpl-ratio{font-size:12px;color:var(--muted);}
+  .tpl-card.user{
+    height:120px;padding:0;background-size:contain;background-position:center;
+    background-repeat:no-repeat;background-color:var(--panel);
+  }
+
+  /* FOOTER */
+  footer{
+    flex:0 0 auto;height:34px;border-top:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;color:var(--muted);gap:6px;padding:0 8px;
+  }
+  footer a{color:var(--muted);}
+
+  /* MODAL */
+  .modal{
+    position:fixed;inset:0;background:rgba(0,0,0,.55);
+    display:none;align-items:center;justify-content:center;
+    z-index:200;padding:14px;
+  }
+  .modal.open{display:flex;}
+  .modal-box{
+    background:var(--bg);color:var(--fg);border:1px solid var(--border);
+    width:100%;max-width:380px;max-height:90dvh;overflow-y:auto;
+  }
+  .modal-head{padding:14px;border-bottom:1px solid var(--border);font-size:16px;font-weight:700;}
+  .modal-body{padding:14px;display:flex;flex-direction:column;gap:12px;}
+  .field label{display:block;font-size:13px;font-weight:600;margin-bottom:4px;}
+  .field textarea,.field input[type="text"]{
+    width:100%;border:1px solid var(--border);background:var(--bg);color:var(--fg);
+    padding:10px;font-size:15px;
+  }
+  .field textarea{min-height:64px;resize:vertical;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .field input[type="color"]{width:100%;height:40px;border:1px solid var(--border);background:var(--bg);padding:2px;}
+  .field input[type="range"]{width:100%;}
+  .modal-foot{padding:14px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+  .modal-foot button{
+    border:1px solid var(--border);background:var(--bg);color:var(--fg);
+    padding:10px 18px;font-weight:600;font-size:14px;
+  }
+  .modal-foot button.primary{background:var(--fg);color:var(--bg);}
+
+  /* WATERMARK PICKER — thumbnail grid */
+  .pick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .pick-grid button{
+    aspect-ratio:1/1;border:1px solid var(--border);background:var(--panel);
+    background-size:contain;background-position:center;background-repeat:no-repeat;padding:0;
+  }
+
+  .toast{
+    position:fixed;left:50%;bottom:50px;transform:translateX(-50%);
+    background:var(--fg);color:var(--bg);padding:10px 16px;font-size:14px;
+    border:1px solid var(--border);z-index:300;opacity:0;transition:opacity .2s;pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+  <header>
+    <h1 data-i18n="title">PROJECT-PE</h1>
+    <button class="menu-btn" id="menuBtn" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="menu-panel" id="menuPanel">
+      <div class="menu-row">
+        <span class="menu-label" data-i18n="language">Language</span>
+        <div class="toggle-group" id="langToggle">
+          <button data-lang="en" class="active">ENGLISH</button>
+          <button data-lang="zh">繁</button>
+        </div>
+      </div>
+      <div class="menu-row">
+        <span class="menu-label" data-i18n="theme">Theme</span>
+        <div class="toggle-group" id="themeToggle">
+          <button data-theme="light" class="active" data-i18n="light">LIGHT</button>
+          <button data-theme="dark" data-i18n="dark">DARK</button>
+        </div>
+      </div>
+      <div class="menu-row stack">
+        <button class="full-btn" id="uploadTplBtn" data-i18n="uploadTemplates">UPLOAD MY TEMPLATES</button>
+        <div class="lib-list" id="tplList"></div>
+      </div>
+      <div class="menu-row stack">
+        <button class="full-btn" id="uploadWmBtn" data-i18n="uploadWatermarks">UPLOAD WATERMARKS</button>
+        <div class="lib-list" id="wmList"></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="photo" data-i18n="tabPhoto">SELECT PHOTO</button>
+    <button class="tab" data-tab="template" data-i18n="tabTemplate">FROM TEMPLATE</button>
+    <button class="tab" data-tab="extra" data-i18n="tabExtra">COMING SOON</button>
+  </div>
+
+  <div class="actions" id="actions">
+    <button id="btnAlbum" data-i18n="fromAlbum">FROM ALBUM</button>
+    <button id="btnFolder" data-i18n="fromFolder">FROM FOLDER</button>
+    <button id="btnCamera" data-i18n="fromCamera">CAMERA</button>
+    <button id="btnAddWm" data-i18n="addWatermark" disabled>WATERMARK</button>
+    <button id="btnAddText" data-i18n="addText" disabled>TEXT</button>
+    <button id="btnShare" class="primary" data-i18n="share" disabled>SHARE</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="canvas" id="canvas" style="display:none;">
+      <img class="bg" id="bgImg" alt="">
+    </div>
+    <div class="empty" id="emptyState" data-i18n="emptyHint">
+      Select a photo to begin.<br>Pick from your Album, Folder, or Camera.
+    </div>
+    <div class="tpl-grid" id="tplGrid" style="display:none;">
+      <div class="tpl-section">
+        <h3 data-i18n="classicTemplates">CLASSIC TEMPLATES</h3>
+        <div class="tpl-row" id="classicTpl"></div>
+      </div>
+      <div class="tpl-section">
+        <h3 data-i18n="myTemplates">MY TEMPLATES</h3>
+        <div class="tpl-row" id="userTpl"></div>
+      </div>
+    </div>
+    <div class="empty" id="extraState" style="display:none;" data-i18n="extraHint">
+      A new function — under construction.
+    </div>
+  </div>
+
+  <div class="thumbs hidden" id="thumbs"></div>
+
+  <footer>
+    <span>&copy; 2026 13STUDIO</span>
+    <a href="https://13studio.co" target="_blank" rel="noopener">13studio.co</a>
+  </footer>
+
+  <input type="file" id="fileAlbum"  accept="image/*" multiple style="display:none;">
+  <input type="file" id="fileFolder" accept="image/*" multiple webkitdirectory style="display:none;">
+  <input type="file" id="fileCamera" accept="image/*" capture="environment" style="display:none;">
+  <input type="file" id="fileTpl"    accept="image/*" style="display:none;">
+  <input type="file" id="fileWm"     accept="image/*" style="display:none;">
+  <input type="file" id="fileSlot"   accept="image/*" style="display:none;">
+
+  <!-- TEXT MODAL -->
+  <div class="modal" id="textModal">
+    <div class="modal-box">
+      <div class="modal-head" data-i18n="editText">EDIT TEXT</div>
+      <div class="modal-body">
+        <div class="field">
+          <label data-i18n="textContent">Text</label>
+          <textarea id="txtContent" placeholder="Type here…"></textarea>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label data-i18n="color">Color</label>
+            <input type="color" id="txtColor" value="#000000">
+          </div>
+          <div class="field">
+            <label data-i18n="opacity">Opacity <span id="txtAlphaVal">100%</span></label>
+            <input type="range" id="txtAlpha" min="10" max="100" value="100">
+          </div>
+        </div>
+        <div class="field">
+          <label data-i18n="fontSize">Font Size <span id="txtSizeVal">28</span></label>
+          <input type="range" id="txtSize" min="10" max="160" value="28">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button id="txtCancel" data-i18n="cancel">CANCEL</button>
+        <button id="txtSave" class="primary" data-i18n="save">SAVE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PICK WATERMARK MODAL -->
+  <div class="modal" id="pickWmModal">
+    <div class="modal-box">
+      <div class="modal-head" data-i18n="pickWatermark">PICK A WATERMARK</div>
+      <div class="modal-body">
+        <div class="pick-grid" id="pickWmList"></div>
+      </div>
+      <div class="modal-foot">
+        <button id="pickWmCancel" data-i18n="cancel">CANCEL</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ---------- I18N ---------- */
+const I18N = {
+  en:{
+    title:"PROJECT-PE",
+    language:"Language", theme:"Theme",
+    light:"LIGHT", dark:"DARK",
+    uploadTemplates:"UPLOAD MY TEMPLATES",
+    uploadWatermarks:"UPLOAD WATERMARKS",
+    tabPhoto:"SELECT PHOTO", tabTemplate:"FROM TEMPLATE", tabExtra:"COMING SOON",
+    fromAlbum:"FROM ALBUM", fromFolder:"FROM FOLDER", fromCamera:"CAMERA",
+    addWatermark:"WATERMARK", addText:"TEXT", share:"SHARE",
+    emptyHint:"Select a photo to begin.<br>Pick from your Album, Folder, or Camera.",
+    extraHint:"A new function — under construction.",
+    classicTemplates:"CLASSIC TEMPLATES", myTemplates:"MY TEMPLATES",
+    editText:"EDIT TEXT", textContent:"Text", color:"Color", opacity:"Opacity", fontSize:"Font Size",
+    cancel:"CANCEL", save:"SAVE",
+    pickWatermark:"PICK A WATERMARK",
+    noTemplates:"No saved templates yet. Use UPLOAD MY TEMPLATES to add one.",
+    noWatermarks:"No watermarks yet. Use the menu to upload.",
+    sharedOk:"Shared.", savedOk:"Saved.", shareFail:"Share failed. File downloaded instead.",
+    folderTip:"Folder picker works on desktop. On phone we open Album.",
+    addAtLeastOne:"Upload a watermark first via the menu.",
+    deleteConfirm:"Delete this item?",
+    tapPhoto:"TAP TO ADD PHOTO", tapWm:"TAP TO ADD WATERMARK",
+    yourHeadline:"YOUR HEADLINE", yourCaption:"Your caption",
+    /* template names */
+    tpl_sunset:"Sunset Story", tpl_ocean:"Ocean Square",
+    tpl_cream:"Cream Magazine", tpl_studio:"Studio Wide",
+    tpl_bold:"Bold Header", tpl_pastel:"Pastel Frame",
+    tpl_minimal:"Minimal White", tpl_youtube:"YouTube Bold",
+    tpl_polaroid:"Polaroid", tpl_premium:"Premium Gold"
+  },
+  zh:{
+    title:"PROJECT-PE",
+    language:"語言", theme:"主題",
+    light:"亮色", dark:"暗色",
+    uploadTemplates:"上傳我的範本",
+    uploadWatermarks:"上傳浮水印",
+    tabPhoto:"選擇照片", tabTemplate:"使用範本", tabExtra:"即將推出",
+    fromAlbum:"從相簿", fromFolder:"從資料夾", fromCamera:"相機",
+    addWatermark:"浮水印", addText:"文字", share:"分享",
+    emptyHint:"請選一張照片開始。<br>可從相簿、資料夾或相機拍攝。",
+    extraHint:"新功能 — 開發中。",
+    classicTemplates:"經典範本", myTemplates:"我的範本",
+    editText:"編輯文字", textContent:"文字", color:"顏色", opacity:"透明度", fontSize:"字體大小",
+    cancel:"取消", save:"儲存",
+    pickWatermark:"選擇浮水印",
+    noTemplates:"尚無自訂範本，請從選單上傳。",
+    noWatermarks:"尚無浮水印，請從選單上傳。",
+    sharedOk:"已分享。", savedOk:"已儲存。", shareFail:"分享失敗，已改為下載。",
+    folderTip:"資料夾選取僅在桌機可用，手機改開相簿。",
+    addAtLeastOne:"請先從選單上傳浮水印。",
+    deleteConfirm:"刪除此元素？",
+    tapPhoto:"點擊加入照片", tapWm:"點擊加入浮水印",
+    yourHeadline:"你的標題", yourCaption:"你的文字",
+    tpl_sunset:"黃昏限動", tpl_ocean:"海洋方型",
+    tpl_cream:"乳白雜誌", tpl_studio:"工作室橫幅",
+    tpl_bold:"大字標題", tpl_pastel:"粉嫩相框",
+    tpl_minimal:"極簡白", tpl_youtube:"YouTube 強調",
+    tpl_polaroid:"拍立得", tpl_premium:"頂級金"
+  }
+};
+
+/* ---------- 10 CLASSIC TEMPLATES ---------- */
+const TEMPLATES = [
+  { key:"tpl_sunset",   w:1080,h:1920,
+    bg:{angle:180,stops:[["#ff7e5f",0],["#feb47b",1]]},
+    items:[
+      {type:"photo-slot",     xPct:0.10,yPct:0.10,wPct:0.80,hPct:0.55},
+      {type:"text",text:"yourHeadline",fontSize:64,color:"#ffffff",alpha:1,xPct:0.08,yPct:0.70,wPct:0.84,hPct:0.10},
+      {type:"watermark-slot", xPct:0.66,yPct:0.86,wPct:0.28,hPct:0.06}
+    ]},
+  { key:"tpl_ocean",    w:1080,h:1080,
+    bg:{angle:135,stops:[["#0f2027",0],["#2c5364",1]]},
+    items:[
+      {type:"photo-slot",     xPct:0.06,yPct:0.06,wPct:0.88,hPct:0.72},
+      {type:"text",text:"yourCaption",fontSize:48,color:"#ffffff",alpha:1,xPct:0.06,yPct:0.82,wPct:0.66,hPct:0.10},
+      {type:"watermark-slot", xPct:0.74,yPct:0.83,wPct:0.20,hPct:0.10}
+    ]},
+  { key:"tpl_cream",    w:1080,h:1350,
+    bg:{angle:180,stops:[["#fdfcfb",0],["#e2d1c3",1]]},
+    items:[
+      {type:"text",text:"yourHeadline",fontSize:54,color:"#3a2a1a",alpha:1,xPct:0.08,yPct:0.04,wPct:0.84,hPct:0.10},
+      {type:"photo-slot",     xPct:0.08,yPct:0.18,wPct:0.84,hPct:0.62},
+      {type:"watermark-slot", xPct:0.36,yPct:0.88,wPct:0.28,hPct:0.07}
+    ]},
+  { key:"tpl_studio",   w:1920,h:1080,
+    bg:{angle:90,stops:[["#1e3c72",0],["#2a5298",1]]},
+    items:[
+      {type:"photo-slot",     xPct:0.45,yPct:0.10,wPct:0.50,hPct:0.80},
+      {type:"text",text:"yourHeadline",fontSize:72,color:"#ffffff",alpha:1,xPct:0.04,yPct:0.30,wPct:0.36,hPct:0.30},
+      {type:"watermark-slot", xPct:0.04,yPct:0.82,wPct:0.20,hPct:0.10}
+    ]},
+  { key:"tpl_bold",     w:1080,h:1920,
+    bg:{angle:180,stops:[["#000000",0],["#cc0000",1]]},
+    items:[
+      {type:"text",text:"yourHeadline",fontSize:96,color:"#ffffff",alpha:1,xPct:0.06,yPct:0.05,wPct:0.88,hPct:0.18},
+      {type:"photo-slot",     xPct:0.05,yPct:0.30,wPct:0.90,hPct:0.55},
+      {type:"watermark-slot", xPct:0.40,yPct:0.90,wPct:0.20,hPct:0.05}
+    ]},
+  { key:"tpl_pastel",   w:1080,h:1080,
+    bg:{angle:45,stops:[["#a8e6cf",0],["#ffd3b6",1]]},
+    items:[
+      {type:"photo-slot",     xPct:0.10,yPct:0.10,wPct:0.80,hPct:0.65},
+      {type:"text",text:"yourCaption",fontSize:42,color:"#3a2a1a",alpha:1,xPct:0.08,yPct:0.80,wPct:0.84,hPct:0.08},
+      {type:"watermark-slot", xPct:0.78,yPct:0.90,wPct:0.18,hPct:0.06}
+    ]},
+  { key:"tpl_minimal",  w:1080,h:1350,
+    bg:{angle:180,stops:[["#fafafa",0],["#e0e0e0",1]]},
+    items:[
+      {type:"photo-slot",     xPct:0.10,yPct:0.10,wPct:0.80,hPct:0.65},
+      {type:"text",text:"yourCaption",fontSize:36,color:"#222222",alpha:1,xPct:0.10,yPct:0.80,wPct:0.80,hPct:0.08},
+      {type:"watermark-slot", xPct:0.40,yPct:0.92,wPct:0.20,hPct:0.04}
+    ]},
+  { key:"tpl_youtube",  w:1280,h:720,
+    bg:{angle:135,stops:[["#6a11cb",0],["#fc575e",1]]},
+    items:[
+      {type:"photo-slot",     xPct:0.04,yPct:0.10,wPct:0.45,hPct:0.80},
+      {type:"text",text:"yourHeadline",fontSize:80,color:"#ffffff",alpha:1,xPct:0.52,yPct:0.20,wPct:0.45,hPct:0.55},
+      {type:"watermark-slot", xPct:0.84,yPct:0.83,wPct:0.13,hPct:0.13}
+    ]},
+  { key:"tpl_polaroid", w:1080,h:1080,
+    bg:{angle:180,stops:[["#fffef5",0],["#fff0d4",1]]},
+    items:[
+      {type:"photo-slot",     xPct:0.08,yPct:0.08,wPct:0.84,hPct:0.70},
+      {type:"text",text:"yourCaption",fontSize:42,color:"#222222",alpha:1,xPct:0.10,yPct:0.82,wPct:0.62,hPct:0.10},
+      {type:"watermark-slot", xPct:0.74,yPct:0.86,wPct:0.20,hPct:0.08}
+    ]},
+  { key:"tpl_premium",  w:1080,h:1920,
+    bg:{angle:180,stops:[["#1f1c2c",0],["#928dab",0.5],["#d4af37",1]]},
+    items:[
+      {type:"photo-slot",     xPct:0.08,yPct:0.08,wPct:0.84,hPct:0.60},
+      {type:"text",text:"yourHeadline",fontSize:60,color:"#ffe9a8",alpha:1,xPct:0.08,yPct:0.72,wPct:0.84,hPct:0.10},
+      {type:"watermark-slot", xPct:0.40,yPct:0.88,wPct:0.20,hPct:0.06}
+    ]}
+];
+
+/* ---------- STATE ---------- */
+const state = {
+  lang: localStorage.getItem("pe_lang") || "en",
+  theme: localStorage.getItem("pe_theme") || "light",
+  tab: "photo",
+  photos: [],
+  activeIdx: -1,
+  defaultWmConfig: null,
+  watermarks: JSON.parse(localStorage.getItem("pe_wms")  || "[]"),
+  templates:  JSON.parse(localStorage.getItem("pe_tpls") || "[]"),
+  selectedItemId: null,
+  pendingSlotId: null
+};
+const isMobile = matchMedia("(hover: none) and (pointer: coarse)").matches;
+document.body.dataset.mobile = isMobile ? "1" : "0";
+
+/* ---------- UTIL ---------- */
+const $  = sel => document.querySelector(sel);
+const $$ = sel => document.querySelectorAll(sel);
+const uid = () => Math.random().toString(36).slice(2,10);
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove("show"),1800);
+}
+function fileToDataURL(f){return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f);});}
+function loadImage(src){return new Promise((res,rej)=>{const i=new Image();i.crossOrigin="anonymous";i.onload=()=>res(i);i.onerror=rej;i.src=src;});}
+
+function gradientCSS(g){
+  return `linear-gradient(${g.angle}deg, ${g.stops.map(s=>`${s[0]} ${(s[1]*100).toFixed(1)}%`).join(", ")})`;
+}
+function paintGradient(ctx,W,H,g){
+  const a = g.angle*Math.PI/180;
+  const dx=Math.sin(a), dy=-Math.cos(a);
+  const len=Math.abs(W*dx)+Math.abs(H*dy);
+  const cx=W/2, cy=H/2;
+  const x0=cx-dx*len/2, y0=cy-dy*len/2, x1=cx+dx*len/2, y1=cy+dy*len/2;
+  const grad=ctx.createLinearGradient(x0,y0,x1,y1);
+  g.stops.forEach(([c,p])=>grad.addColorStop(p,c));
+  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+}
+async function autoContrastColor(photo,xPct,yPct,wPct,hPct){
+  try{
+    if(photo.bgGradient){
+      const c=document.createElement("canvas");c.width=100;c.height=100*photo.natH/photo.natW;
+      const ctx=c.getContext("2d"); paintGradient(ctx,c.width,c.height,photo.bgGradient);
+      return sampleLuminance(ctx,c.width,c.height,xPct,yPct,wPct,hPct);
+    }
+    if(photo.src){
+      const img=await loadImage(photo.src);
+      const c=document.createElement("canvas");
+      const W=120, H=Math.max(20,Math.round(120*photo.natH/photo.natW));
+      c.width=W; c.height=H;
+      const ctx=c.getContext("2d"); ctx.drawImage(img,0,0,W,H);
+      return sampleLuminance(ctx,W,H,xPct,yPct,wPct,hPct);
+    }
+  }catch(_){}
+  return "#ffffff";
+}
+function sampleLuminance(ctx,W,H,xPct,yPct,wPct,hPct){
+  const sx=Math.max(0,Math.min(W-1,Math.floor(xPct*W)));
+  const sy=Math.max(0,Math.min(H-1,Math.floor(yPct*H)));
+  const sw=Math.max(1,Math.min(W-sx,Math.ceil(wPct*W)));
+  const sh=Math.max(1,Math.min(H-sy,Math.ceil(hPct*H)));
+  const data=ctx.getImageData(sx,sy,sw,sh).data;
+  let sum=0, n=0;
+  for(let i=0;i<data.length;i+=4){ sum += 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]; n++; }
+  return (sum/n) > 140 ? "#000000" : "#ffffff";
+}
+
+function applyI18N(){
+  const dict=I18N[state.lang];
+  $$("[data-i18n]").forEach(el=>{
+    const k=el.getAttribute("data-i18n");
+    if(dict[k]!==undefined) el.innerHTML=dict[k];
+  });
+  document.documentElement.lang = state.lang==="zh"?"zh-TW":"en";
+}
+function applyTheme(){
+  document.documentElement.setAttribute("data-theme",state.theme);
+  $$("#themeToggle button").forEach(b=>b.classList.toggle("active",b.dataset.theme===state.theme));
+  $$("#langToggle button").forEach(b=>b.classList.toggle("active",b.dataset.lang===state.lang));
+}
+
+/* ---------- MENU ---------- */
+$("#menuBtn").addEventListener("click",e=>{e.stopPropagation();$("#menuPanel").classList.toggle("open");});
+document.addEventListener("click",e=>{
+  if(!$("#menuPanel").contains(e.target) && e.target!==$("#menuBtn")) $("#menuPanel").classList.remove("open");
+});
+$("#langToggle").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  state.lang=b.dataset.lang; localStorage.setItem("pe_lang",state.lang);
+  applyI18N(); applyTheme(); renderClassicTpl(); renderUserTpl();
+});
+$("#themeToggle").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  state.theme=b.dataset.theme; localStorage.setItem("pe_theme",state.theme); applyTheme();
+});
+$("#uploadTplBtn").addEventListener("click",()=>$("#fileTpl").click());
+$("#uploadWmBtn").addEventListener("click",()=>$("#fileWm").click());
+
+$("#fileTpl").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const src=await fileToDataURL(f);
+  state.templates.push({id:uid(),src});
+  localStorage.setItem("pe_tpls",JSON.stringify(state.templates));
+  renderLib(); renderUserTpl(); e.target.value="";
+});
+$("#fileWm").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const src=await fileToDataURL(f);
+  state.watermarks.push({id:uid(),src});
+  localStorage.setItem("pe_wms",JSON.stringify(state.watermarks));
+  renderLib(); e.target.value="";
+});
+
+function renderLib(){
+  const t=$("#tplList"), w=$("#wmList");
+  t.innerHTML=""; w.innerHTML="";
+  if(!state.templates.length) t.innerHTML=`<div class="lib-empty">${I18N[state.lang].noTemplates}</div>`;
+  state.templates.forEach(it=>{
+    const d=document.createElement("div");
+    d.className="lib-thumb"; d.style.backgroundImage=`url(${it.src})`;
+    const x=document.createElement("button"); x.className="x"; x.textContent="×";
+    x.addEventListener("click",ev=>{
+      ev.stopPropagation();
+      state.templates=state.templates.filter(z=>z.id!==it.id);
+      localStorage.setItem("pe_tpls",JSON.stringify(state.templates));
+      renderLib(); renderUserTpl();
+    });
+    d.appendChild(x); t.appendChild(d);
+  });
+  if(!state.watermarks.length) w.innerHTML=`<div class="lib-empty">${I18N[state.lang].noWatermarks}</div>`;
+  state.watermarks.forEach(it=>{
+    const d=document.createElement("div");
+    d.className="lib-thumb"; d.style.backgroundImage=`url(${it.src})`;
+    const x=document.createElement("button"); x.className="x"; x.textContent="×";
+    x.addEventListener("click",ev=>{
+      ev.stopPropagation();
+      state.watermarks=state.watermarks.filter(z=>z.id!==it.id);
+      localStorage.setItem("pe_wms",JSON.stringify(state.watermarks));
+      renderLib();
+    });
+    d.appendChild(x); w.appendChild(d);
+  });
+}
+
+/* ---------- TABS ---------- */
+$("#tabs").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  state.tab=b.dataset.tab;
+  $$(".tab").forEach(t=>t.classList.toggle("active",t===b));
+  switchTabUI();
+});
+function switchTabUI(){
+  const isPhoto=state.tab==="photo", isTpl=state.tab==="template", isExtra=state.tab==="extra";
+  $("#actions").style.display = isExtra?"none":"flex";
+  $("#btnAlbum").style.display = isPhoto?"":"none";
+  $("#btnFolder").style.display= isPhoto?"":"none";
+  $("#btnCamera").style.display= isPhoto?(isMobile?"":"none"):"none";
+  $("#tplGrid").style.display = isTpl?"block":"none";
+  $("#extraState").style.display = isExtra?"flex":"none";
+  $("#emptyState").style.display = (isPhoto && state.activeIdx<0)?"flex":"none";
+  $("#thumbs").classList.toggle("hidden",!(isPhoto && state.photos.length>1));
+  $("#canvas").style.display = (state.activeIdx>=0 && !isExtra && !isTpl) ? "" : "none";
+  if(isTpl){ renderClassicTpl(); renderUserTpl(); }
+}
+
+/* ---------- TAB 2 RENDER ---------- */
+function renderClassicTpl(){
+  const dict=I18N[state.lang];
+  const c=$("#classicTpl"); c.innerHTML="";
+  TEMPLATES.forEach(t=>{
+    const card=document.createElement("button"); card.className="tpl-card";
+    const ratio=t.w/t.h;
+    const pv=document.createElement("div"); pv.className="tpl-preview";
+    pv.style.background = gradientCSS(t.bg);
+    pv.style.width = Math.round(96*ratio)+"px";
+    t.items.forEach(it=>{
+      const tag=document.createElement("div");
+      if(it.type==="photo-slot") tag.className="ph";
+      else if(it.type==="watermark-slot") tag.className="wm";
+      else tag.className="tx";
+      tag.style.left=(it.xPct*100)+"%";
+      tag.style.top=(it.yPct*100)+"%";
+      tag.style.width=(it.wPct*100)+"%";
+      tag.style.height=(it.hPct*100)+"%";
+      if(it.type==="text") tag.textContent=dict[it.text]||it.text;
+      pv.appendChild(tag);
+    });
+    const meta=document.createElement("div"); meta.className="tpl-meta";
+    const nm=document.createElement("div"); nm.className="tpl-name"; nm.textContent=dict[t.key]||t.key;
+    const ra=document.createElement("div"); ra.className="tpl-ratio";
+    ra.textContent = `${t.w}×${t.h} · ${ratioLabel(t.w,t.h)}`;
+    meta.appendChild(nm); meta.appendChild(ra);
+    card.appendChild(pv); card.appendChild(meta);
+    card.addEventListener("click",()=>useClassicTemplate(t));
+    c.appendChild(card);
+  });
+}
+function ratioLabel(w,h){
+  const g=(a,b)=>b?g(b,a%b):a; const d=g(w,h);
+  return `${w/d}:${h/d}`;
+}
+function renderUserTpl(){
+  const u=$("#userTpl"); const dict=I18N[state.lang];
+  u.innerHTML="";
+  if(!state.templates.length){ u.innerHTML=`<div class="lib-empty">${dict.noTemplates}</div>`; return; }
+  state.templates.forEach(t=>{
+    const btn=document.createElement("button");
+    btn.className="tpl-card user"; btn.style.backgroundImage=`url(${t.src})`;
+    btn.addEventListener("click",()=>useImageTemplate(t.src));
+    u.appendChild(btn);
+  });
+}
+
+/* ---------- USE TEMPLATE ---------- */
+async function useClassicTemplate(t){
+  const items=t.items.map(it=>{
+    const base={id:uid(),xPct:it.xPct,yPct:it.yPct,wPct:it.wPct,hPct:it.hPct,alpha:it.alpha??1};
+    if(it.type==="photo-slot") return {...base,type:"photo-slot",src:null};
+    if(it.type==="watermark-slot"){
+      const wm = state.watermarks[state.watermarks.length-1];
+      return wm ? {...base,type:"watermark",src:wm.src,alpha:0.9}
+                : {...base,type:"watermark-slot",src:null};
+    }
+    if(it.type==="text"){
+      const txt = I18N[state.lang][it.text] || it.text;
+      return {...base,type:"text",text:txt,fontSize:it.fontSize,color:it.color,alpha:it.alpha??1};
+    }
+    return {...base,...it};
+  });
+  state.photos=[{id:uid(),src:null,natW:t.w,natH:t.h,bgGradient:t.bg,items}];
+  state.activeIdx=0; state.tab="photo";
+  $$(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab==="photo"));
+  switchTabUI(); loadActive(); renderThumbs(); updateActionState();
+}
+async function useImageTemplate(src){
+  const img=await loadImage(src);
+  state.photos=[{id:uid(),src,natW:img.naturalWidth,natH:img.naturalHeight,items:[]}];
+  state.activeIdx=0; state.tab="photo";
+  $$(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab==="photo"));
+  switchTabUI(); loadActive(); renderThumbs(); updateActionState();
+}
+
+/* ---------- PHOTO PICKING ---------- */
+$("#btnAlbum").addEventListener("click",()=>$("#fileAlbum").click());
+$("#btnFolder").addEventListener("click",()=>{
+  if(isMobile){ toast(I18N[state.lang].folderTip); $("#fileAlbum").click(); }
+  else { $("#fileFolder").click(); }
+});
+$("#btnCamera").addEventListener("click",()=>$("#fileCamera").click());
+["fileAlbum","fileFolder","fileCamera"].forEach(id=>{
+  $("#"+id).addEventListener("change",e=>handleFiles(e.target.files,e.target));
+});
+async function handleFiles(files,input){
+  const list=[...files].filter(f=>f.type.startsWith("image/"));
+  if(!list.length){ if(input) input.value=""; return; }
+  for(const f of list){
+    const src=await fileToDataURL(f);
+    const img=await loadImage(src);
+    const photo={id:uid(),src,natW:img.naturalWidth,natH:img.naturalHeight,items:[]};
+    if(state.defaultWmConfig){
+      photo.items.push(cloneItemFromDefault(state.defaultWmConfig));
+    }
+    state.photos.push(photo);
+  }
+  state.activeIdx = state.activeIdx<0 ? 0 : state.activeIdx;
+  loadActive(); renderThumbs(); switchTabUI(); updateActionState();
+  if(input) input.value="";
+}
+function cloneItemFromDefault(cfg){
+  return {id:uid(),type:"watermark",src:cfg.src,alpha:cfg.alpha,
+    xPct:cfg.xPct,yPct:cfg.yPct,wPct:cfg.wPct,hPct:cfg.hPct,_fromDefault:true};
+}
+
+/* slot fill: photo-slot → file picker */
+$("#fileSlot").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f || !state.pendingSlotId) return;
+  const src=await fileToDataURL(f);
+  const p=activePhoto(); if(!p){ e.target.value=""; return; }
+  const it=p.items.find(x=>x.id===state.pendingSlotId);
+  if(it){ it.type="photo"; it.src=src; }
+  state.pendingSlotId=null; e.target.value="";
+  renderItems();
+});
+
+/* ---------- CANVAS LAYOUT ---------- */
+const stage=$("#stage"), canvas=$("#canvas"), bgImg=$("#bgImg");
+function activePhoto(){ return state.photos[state.activeIdx]; }
+
+function loadActive(){
+  const p=activePhoto();
+  if(!p){ canvas.style.display="none"; return; }
+  canvas.style.display="";
+  canvas.classList.remove("transparent");
+  if(p.bgGradient){
+    bgImg.style.display="none";
+    canvas.style.background = gradientCSS(p.bgGradient);
+  } else if(p.src){
+    bgImg.src=p.src; bgImg.style.display="";
+    canvas.style.background="#ffffff";
+  } else {
+    bgImg.style.display="none";
+    canvas.style.background="#ffffff";
+  }
+  fitCanvas(); renderItems();
+}
+function fitCanvas(){
+  const p=activePhoto(); if(!p) return;
+  const sw=stage.clientWidth, sh=stage.clientHeight;
+  const ar=p.natW/p.natH;
+  let w=sw, h=sw/ar;
+  if(h>sh){ h=sh; w=sh*ar; }
+  w*=0.95; h*=0.95;
+  canvas.style.width=w+"px"; canvas.style.height=h+"px";
+}
+window.addEventListener("resize",()=>fitCanvas());
+
+function renderItems(){
+  canvas.querySelectorAll(".item").forEach(n=>n.remove());
+  const p=activePhoto(); if(!p) return;
+  p.items.forEach(it=>{
+    const el=document.createElement("div");
+    el.className="item"; el.dataset.id=it.id;
+    if(it.id===state.selectedItemId) el.classList.add("selected");
+    positionItem(el,it);
+    if(it.type==="watermark"){
+      const im=document.createElement("img"); im.src=it.src; im.style.opacity=it.alpha;
+      el.appendChild(im);
+    } else if(it.type==="photo"){
+      const im=document.createElement("img"); im.src=it.src; im.classList.add("cover");
+      el.appendChild(im);
+    } else if(it.type==="text"){
+      const tx=document.createElement("div"); tx.className="text-content";
+      tx.textContent=it.text||""; tx.style.color=it.color;
+      tx.style.opacity=it.alpha; tx.style.fontSize=it.fontSize+"px"; tx.style.fontWeight="700";
+      el.appendChild(tx);
+    } else if(it.type==="photo-slot" || it.type==="watermark-slot"){
+      const ph=document.createElement("div"); ph.className="slot-ph";
+      ph.textContent = it.type==="photo-slot" ? I18N[state.lang].tapPhoto : I18N[state.lang].tapWm;
+      el.appendChild(ph);
+    }
+    const hbr=document.createElement("div"); hbr.className="handle h-br"; el.appendChild(hbr);
+    const hdel=document.createElement("button"); hdel.className="handle h-del"; hdel.textContent="×"; el.appendChild(hdel);
+    canvas.appendChild(el);
+    attachItemHandlers(el,it,hbr,hdel);
+  });
+}
+function positionItem(el,it){
+  el.style.left=(it.xPct*100)+"%";
+  el.style.top=(it.yPct*100)+"%";
+  el.style.width=(it.wPct*100)+"%";
+  el.style.height=(it.hPct*100)+"%";
+}
+
+/* ---------- DRAG / RESIZE / TAP ---------- */
+function attachItemHandlers(el,it,hbr,hdel){
+  let mode=null,sx=0,sy=0,start=null,lastTap=0,moved=0;
+  const onDown=(e)=>{
+    if(e.target===hdel){
+      e.stopPropagation();
+      if(confirm(I18N[state.lang].deleteConfirm)) deleteItem(it.id);
+      return;
+    }
+    e.preventDefault();
+    state.selectedItemId=it.id;
+    canvas.querySelectorAll(".item").forEach(n=>n.classList.remove("selected"));
+    el.classList.add("selected");
+    const rect=canvas.getBoundingClientRect();
+    sx=e.clientX; sy=e.clientY; moved=0;
+    start={x:it.xPct,y:it.yPct,w:it.wPct,h:it.hPct,cw:rect.width,ch:rect.height};
+    mode = (e.target===hbr) ? "resize" : "drag";
+    el.setPointerCapture(e.pointerId);
+    if(it.type==="text"){
+      const now=Date.now();
+      if(now-lastTap<350) openTextModal(it);
+      lastTap=now;
+    }
+  };
+  const onMove=(e)=>{
+    if(!mode) return;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    moved=Math.max(moved,Math.abs(dx)+Math.abs(dy));
+    if(mode==="drag"){
+      it.xPct=Math.max(-it.wPct*0.5,Math.min(1-it.wPct*0.5,start.x+dx/start.cw));
+      it.yPct=Math.max(-it.hPct*0.5,Math.min(1-it.hPct*0.5,start.y+dy/start.ch));
+    } else {
+      it.wPct=Math.max(0.05,Math.min(2,start.w+dx/start.cw));
+      it.hPct=Math.max(0.04,Math.min(2,start.h+dy/start.ch));
+    }
+    positionItem(el,it);
+  };
+  const onUp=(e)=>{
+    if(mode && moved<8){
+      // tap behaviors
+      if(it.type==="photo-slot"){
+        state.pendingSlotId=it.id; $("#fileSlot").click();
+      } else if(it.type==="watermark-slot"){
+        if(!state.watermarks.length){ toast(I18N[state.lang].addAtLeastOne); }
+        else if(state.watermarks.length===1){ fillWmSlot(it,state.watermarks[0].src); }
+        else { state.pendingSlotId=it.id; openWmPicker(true); }
+      }
+    }
+    if(mode && it.type==="watermark" && state.activeIdx===0){
+      updateDefaultFromItem(it);
+      propagateWatermarkPosition();
+    }
+    mode=null;
+    try{el.releasePointerCapture(e.pointerId);}catch(_){}
+  };
+  el.addEventListener("pointerdown",onDown);
+  el.addEventListener("pointermove",onMove);
+  el.addEventListener("pointerup",onUp);
+  el.addEventListener("pointercancel",onUp);
+  if(it.type==="text") el.addEventListener("dblclick",()=>openTextModal(it));
+}
+function fillWmSlot(it,src){
+  it.type="watermark"; it.src=src; it.alpha=it.alpha??0.9;
+  renderItems();
+}
+function deleteItem(id){
+  const p=activePhoto();
+  p.items=p.items.filter(i=>i.id!==id);
+  if(state.activeIdx===0 && state.defaultWmConfig && state.defaultWmConfig.id===id){
+    state.defaultWmConfig=null;
+    state.photos.forEach((ph,i)=>{ if(i===0) return; ph.items=ph.items.filter(it=>it.type!=="watermark"||it._fromDefault!==true); });
+  }
+  renderItems();
+}
+function updateDefaultFromItem(it){
+  state.defaultWmConfig={id:it.id,type:"watermark",src:it.src,alpha:it.alpha,
+    xPct:it.xPct,yPct:it.yPct,wPct:it.wPct,hPct:it.hPct};
+}
+function propagateWatermarkPosition(){
+  if(!state.defaultWmConfig) return;
+  const cfg=state.defaultWmConfig;
+  state.photos.forEach((ph,i)=>{
+    if(i===0) return;
+    let wm=ph.items.find(x=>x.type==="watermark"&&x._fromDefault===true);
+    if(!wm){
+      wm={id:uid(),type:"watermark",src:cfg.src,alpha:cfg.alpha,
+        xPct:cfg.xPct,yPct:cfg.yPct,wPct:cfg.wPct,hPct:cfg.hPct,_fromDefault:true};
+      ph.items.push(wm);
+    } else {
+      wm.src=cfg.src;wm.alpha=cfg.alpha;
+      wm.xPct=cfg.xPct;wm.yPct=cfg.yPct;wm.wPct=cfg.wPct;wm.hPct=cfg.hPct;
+    }
+  });
+}
+
+/* ---------- ADD WATERMARK / TEXT ---------- */
+$("#btnAddWm").addEventListener("click",()=>{
+  if(!state.watermarks.length){ toast(I18N[state.lang].addAtLeastOne); return; }
+  if(state.watermarks.length===1){ addWatermarkToActive(state.watermarks[0].src); return; }
+  openWmPicker(false);
+});
+function openWmPicker(forSlot){
+  const list=$("#pickWmList"); list.innerHTML="";
+  state.watermarks.forEach(w=>{
+    const b=document.createElement("button");
+    b.style.backgroundImage=`url(${w.src})`;
+    b.addEventListener("click",()=>{
+      if(forSlot && state.pendingSlotId){
+        const p=activePhoto(); const it=p.items.find(x=>x.id===state.pendingSlotId);
+        if(it) fillWmSlot(it,w.src);
+        state.pendingSlotId=null;
+      } else {
+        addWatermarkToActive(w.src);
+      }
+      $("#pickWmModal").classList.remove("open");
+    });
+    list.appendChild(b);
+  });
+  $("#pickWmModal").classList.add("open");
+}
+$("#pickWmCancel").addEventListener("click",()=>{
+  state.pendingSlotId=null; $("#pickWmModal").classList.remove("open");
+});
+
+function addWatermarkToActive(src){
+  const p=activePhoto(); if(!p) return;
+  const wPct=0.30, hPct=0.12;
+  const xPct=1-wPct-0.04, yPct=1-hPct-0.04;
+  const item={id:uid(),type:"watermark",src,alpha:0.85,xPct,yPct,wPct,hPct};
+  if(state.activeIdx===0 && !p.bgGradient){
+    item._fromDefault=true;
+    p.items=p.items.filter(it=>!(it.type==="watermark"&&it._fromDefault===true));
+    p.items.push(item);
+    updateDefaultFromItem(item); propagateWatermarkPosition();
+  } else {
+    p.items.push(item);
+  }
+  state.selectedItemId=item.id; renderItems();
+}
+
+$("#btnAddText").addEventListener("click",async()=>{
+  const p=activePhoto(); if(!p) return;
+  const xPct=0.2,yPct=0.45,wPct=0.6,hPct=0.12;
+  const color = await autoContrastColor(p,xPct,yPct,wPct,hPct);
+  const item={id:uid(),type:"text",
+    text:state.lang==="zh"?"輸入文字":"Your text",
+    color, fontSize:36, alpha:1, xPct,yPct,wPct,hPct};
+  p.items.push(item); state.selectedItemId=item.id;
+  renderItems(); openTextModal(item);
+});
+
+/* ---------- TEXT MODAL ---------- */
+let editingTextItem=null;
+function openTextModal(it){
+  editingTextItem=it;
+  $("#txtContent").value=it.text;
+  $("#txtColor").value=it.color;
+  $("#txtAlpha").value=Math.round(it.alpha*100); $("#txtAlphaVal").textContent=Math.round(it.alpha*100)+"%";
+  $("#txtSize").value=it.fontSize; $("#txtSizeVal").textContent=it.fontSize;
+  $("#textModal").classList.add("open");
+}
+$("#txtAlpha").addEventListener("input",e=>$("#txtAlphaVal").textContent=e.target.value+"%");
+$("#txtSize").addEventListener("input",e=>$("#txtSizeVal").textContent=e.target.value);
+$("#txtCancel").addEventListener("click",()=>$("#textModal").classList.remove("open"));
+$("#txtSave").addEventListener("click",()=>{
+  if(!editingTextItem) return;
+  editingTextItem.text=$("#txtContent").value;
+  editingTextItem.color=$("#txtColor").value;
+  editingTextItem.alpha=parseInt($("#txtAlpha").value,10)/100;
+  editingTextItem.fontSize=parseInt($("#txtSize").value,10);
+  $("#textModal").classList.remove("open");
+  renderItems();
+});
+
+/* ---------- THUMBS ---------- */
+function renderThumbs(){
+  const t=$("#thumbs"); t.innerHTML="";
+  state.photos.forEach((p,i)=>{
+    const im=document.createElement(p.src?"img":"div");
+    im.className="thumb"+(i===state.activeIdx?" active":"");
+    if(p.src){ im.src=p.src; }
+    else if(p.bgGradient){ im.style.background=gradientCSS(p.bgGradient); im.style.backgroundSize="cover"; }
+    else { im.style.background="repeating-conic-gradient(#ddd 0 25%,#fff 0 50%) 50%/12px 12px"; }
+    im.addEventListener("click",()=>{
+      state.activeIdx=i; state.selectedItemId=null; loadActive(); renderThumbs();
+    });
+    t.appendChild(im);
+  });
+  $("#thumbs").classList.toggle("hidden", !(state.tab==="photo" && state.photos.length>1));
+}
+
+/* ---------- ACTIONS ---------- */
+function updateActionState(){
+  const has=state.activeIdx>=0;
+  $("#btnAddWm").disabled=!has;
+  $("#btnAddText").disabled=!has;
+  $("#btnShare").disabled=!has;
+}
+
+/* ---------- EXPORT / SHARE ---------- */
+async function exportActiveBlob(){
+  const p=activePhoto(); if(!p) return null;
+  const W=p.natW, H=p.natH;
+  const c=document.createElement("canvas"); c.width=W; c.height=H;
+  const ctx=c.getContext("2d");
+  if(p.bgGradient){ paintGradient(ctx,W,H,p.bgGradient); }
+  else if(p.src){ const bg=await loadImage(p.src); ctx.drawImage(bg,0,0,W,H); }
+  else { ctx.clearRect(0,0,W,H); }
+  for(const it of p.items){
+    const x=it.xPct*W, y=it.yPct*H, w=it.wPct*W, h=it.hPct*H;
+    if(it.type==="photo-slot" || it.type==="watermark-slot") continue; // unfilled slots not drawn
+    ctx.save();
+    ctx.globalAlpha = it.alpha ?? 1;
+    if(it.type==="watermark"){
+      const im=await loadImage(it.src);
+      ctx.drawImage(im,x,y,w,h);
+    } else if(it.type==="photo"){
+      const im=await loadImage(it.src);
+      // object-fit: cover
+      const sr=im.naturalWidth/im.naturalHeight, dr=w/h;
+      let sx,sy,sw,sh;
+      if(sr>dr){ sh=im.naturalHeight; sw=sh*dr; sx=(im.naturalWidth-sw)/2; sy=0; }
+      else { sw=im.naturalWidth; sh=sw/dr; sx=0; sy=(im.naturalHeight-sh)/2; }
+      ctx.drawImage(im,sx,sy,sw,sh,x,y,w,h);
+    } else if(it.type==="text"){
+      const dispW=canvas.clientWidth || 1;
+      const scale=W/dispW;
+      const fs=it.fontSize*scale;
+      ctx.fillStyle=it.color;
+      ctx.font=`700 ${fs}px -apple-system,"Helvetica Neue","PingFang TC","Microsoft JhengHei",Arial,sans-serif`;
+      ctx.textAlign="center"; ctx.textBaseline="middle";
+      const lines=wrapText(ctx,it.text||"",w);
+      const lh=fs*1.1, total=lines.length*lh;
+      let cy=y+h/2-total/2+lh/2;
+      lines.forEach(l=>{ ctx.fillText(l,x+w/2,cy); cy+=lh; });
+    }
+    ctx.restore();
+  }
+  return await new Promise(res=>c.toBlob(res,"image/png"));
+}
+function wrapText(ctx,text,maxW){
+  const words=(text||"").split(/(\s+)/);
+  const lines=[]; let cur="";
+  for(const w of words){
+    const t=cur+w;
+    if(ctx.measureText(t).width>maxW && cur){ lines.push(cur.trimEnd()); cur=w.trimStart(); }
+    else cur=t;
+  }
+  if(cur) lines.push(cur);
+  return lines.length?lines:[""];
+}
+
+$("#btnShare").addEventListener("click",async()=>{
+  const blob=await exportActiveBlob(); if(!blob) return;
+  const file=new File([blob],"project-pe.png",{type:"image/png"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file],title:"PROJECT-PE"}); toast(I18N[state.lang].sharedOk); return; }
+    catch(err){ if(err && err.name==="AbortError") return; }
+  }
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download="project-pe.png";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  toast(I18N[state.lang].savedOk);
+});
+
+/* ---------- INIT ---------- */
+applyI18N(); applyTheme(); renderLib();
+renderClassicTpl(); renderUserTpl();
+switchTabUI(); updateActionState();
+window.addEventListener("orientationchange",()=>setTimeout(fitCanvas,200));
+</script>
+</body>
+</html>
