@@ -70,6 +70,29 @@
   .strip1 > .cell{background:var(--panel);font-weight:600;}
   .strip1 > .cell.primary,
   .strip1 > .cell.active{background:var(--accent);color:var(--accent-fg);}
+  /* STRIP 2 — inline text editor */
+  .strip.strip2{height:46px;background:var(--panel);}
+  .strip.strip2.hidden{display:none;}
+  .strip2 > .ctrl{
+    flex:0 0 auto;border:none;border-right:1px solid var(--border);
+    background:transparent;color:var(--fg);
+    padding:0 6px;font-family:inherit;
+    display:flex;align-items:center;justify-content:center;
+    height:100%;cursor:pointer;
+  }
+  .strip2 > .ctrl:last-child{border-right:none;}
+  .strip2 > .txt-edit{
+    flex:1 1 0;min-width:0;
+    padding:0 12px;font-size:18px;font-weight:600;
+    text-align:left;cursor:text;outline:none;
+  }
+  .strip2 > .color-edit{
+    flex:0 0 50px;width:50px;padding:6px;
+  }
+  .strip2 > .size-edit{
+    flex:0 0 44px;font-size:18px;font-weight:800;letter-spacing:.5px;
+  }
+  .strip2 > .ctrl:disabled{opacity:.4;}
   .strip > .cell:disabled,
   .strip > .cell.is-disabled{opacity:.35;pointer-events:none;}
   .strip > .cell:last-child{border-right:none;}
@@ -275,11 +298,12 @@
           <div class="lib-list" id="wmList"></div>
         </div>
         <div class="menu-row copyright">
-          <span>&copy; 2026 13STUDIO &middot; <a href="https://13studio.co" target="_blank" rel="noopener">13studio.co</a> &middot; v0.0.6</span>
+          <span>&copy; 2026 13STUDIO &middot; <a href="https://13studio.co" target="_blank" rel="noopener">13studio.co</a> &middot; v0.0.7</span>
         </div>
       </div>
     </div>
     <div class="strip strip1" id="strip1"></div>
+    <div class="strip strip2 hidden" id="strip2"></div>
   </div>
 
   <div class="stage" id="stage">
@@ -296,35 +320,7 @@
   <input type="file" id="fileCamera" accept="image/*" capture="environment" class="hidden-input">
   <input type="file" id="fileWm"     accept="image/*" class="hidden-input">
 
-  <div class="modal" id="textModal">
-    <div class="modal-box">
-      <div class="modal-head" data-i18n="editText">EDIT TEXT</div>
-      <div class="modal-body">
-        <div class="field">
-          <label data-i18n="textContent">Text</label>
-          <textarea id="txtContent" placeholder="Type here…"></textarea>
-        </div>
-        <div class="row2">
-          <div class="field">
-            <label data-i18n="color">Color</label>
-            <input type="color" id="txtColor" value="#000000">
-          </div>
-          <div class="field">
-            <label data-i18n="opacity">Opacity <span id="txtAlphaVal">100%</span></label>
-            <input type="range" id="txtAlpha" min="10" max="100" value="100">
-          </div>
-        </div>
-        <div class="field">
-          <label data-i18n="fontSize">Font Size <span id="txtSizeVal">28</span></label>
-          <input type="range" id="txtSize" min="10" max="160" value="28">
-        </div>
-      </div>
-      <div class="modal-foot">
-        <button id="txtCancel" data-i18n="cancel">CANCEL</button>
-        <button id="txtSave" class="primary" data-i18n="save">SAVE</button>
-      </div>
-    </div>
-  </div>
+  <!-- text modal removed: text editing now lives inline on strip2 -->
 
   <div class="modal" id="pickWmModal">
     <div class="modal-box">
@@ -512,7 +508,58 @@ function setMode(m){
   state.mode = m;
   $$("#strip0 .cell[data-mode]").forEach(c=>c.classList.toggle("active", c.dataset.mode===m));
   renderStrip1();
+  renderStrip2();
   refreshStage();
+}
+
+function renderStrip2(){
+  const s = $("#strip2"); if(!s) return;
+  s.innerHTML = "";
+  const p = activePhoto();
+  if(state.mode !== "text" || !p){
+    s.classList.add("hidden");
+    return;
+  }
+  // Look for a selected text item; if none, find the most recent text item
+  let item = p.items.find(x => x.id === state.selectedItemId && x.type === "text");
+  if(!item){
+    const texts = p.items.filter(x => x.type === "text");
+    if(texts.length) item = texts[texts.length - 1];
+  }
+  if(!item){ s.classList.add("hidden"); return; }
+  s.classList.remove("hidden");
+  state.selectedItemId = item.id;
+
+  // Text input — main editor
+  const txt = document.createElement("input");
+  txt.type = "text"; txt.className = "ctrl txt-edit";
+  txt.value = item.text || "";
+  txt.placeholder = state.lang==="zh" ? "輸入文字" : "Type your text";
+  txt.addEventListener("input", e => { item.text = e.target.value; renderItems(); });
+  s.appendChild(txt);
+
+  // Color picker
+  const col = document.createElement("input");
+  col.type = "color"; col.className = "ctrl color-edit";
+  col.value = (item.color && /^#[0-9a-f]{6}$/i.test(item.color)) ? item.color : "#ffffff";
+  col.addEventListener("input", e => { item.color = e.target.value; renderItems(); });
+  s.appendChild(col);
+
+  // Size − and +
+  const minus = document.createElement("button");
+  minus.type = "button"; minus.className = "ctrl size-edit"; minus.textContent = "A−";
+  minus.addEventListener("click", () => {
+    item.fontSize = Math.max(10, (item.fontSize||36) - 6);
+    renderItems();
+  });
+  s.appendChild(minus);
+  const plus = document.createElement("button");
+  plus.type = "button"; plus.className = "ctrl size-edit"; plus.textContent = "A+";
+  plus.addEventListener("click", () => {
+    item.fontSize = Math.min(160, (item.fontSize||36) + 6);
+    renderItems();
+  });
+  s.appendChild(plus);
 }
 function renderStrip1(){
   const dict=I18N[state.lang];
@@ -649,11 +696,8 @@ function attachItemHandlers(el,it,hbr,hdel){
     start={x:it.xPct,y:it.yPct,w:it.wPct,h:it.hPct,cw:rect.width,ch:rect.height};
     mode = (e.target===hbr) ? "resize" : "drag";
     el.setPointerCapture(e.pointerId);
-    if(it.type==="text"){
-      const now=Date.now();
-      if(now-lastTap<350) openTextModal(it);
-      lastTap=now;
-    }
+    // When a text item is selected, refresh strip2 so it edits the right item
+    if(it.type==="text" && state.mode==="text") renderStrip2();
   };
   const onMove=(e)=>{
     if(!mode) return;
@@ -692,7 +736,6 @@ function attachItemHandlers(el,it,hbr,hdel){
   el.addEventListener("pointermove",onMove);
   el.addEventListener("pointerup",onUp);
   el.addEventListener("pointercancel",onUp);
-  if(it.type==="text") el.addEventListener("dblclick",()=>openTextModal(it));
 }
 function deleteItem(id){
   const p=activePhoto();
@@ -774,44 +817,21 @@ function addTextFlow(){
   p.items.push(item);
   state.selectedItemId=item.id;
   renderItems();
-  openTextModal(item);
-  // Improve color in the background (non-blocking, won't fail the modal)
+  renderStrip2();
+  // Auto-focus the inline text input so user can immediately type
+  setTimeout(() => {
+    const inp = document.querySelector("#strip2 .txt-edit");
+    if(inp){ try{ inp.focus(); inp.select(); }catch(_){} }
+  }, 80);
+  // Auto-contrast color in the background (non-blocking)
   autoContrastColor(p,xPct,yPct,wPct,hPct).then(c=>{
     if(c && item.color === "#ffffff"){
       item.color = c;
-      const cp = $("#txtColor"); if(cp && editingTextItem === item) cp.value = c;
+      const cp = document.querySelector("#strip2 .color-edit"); if(cp) cp.value = c;
       renderItems();
     }
   }).catch(()=>{});
 }
-
-let editingTextItem=null;
-function openTextModal(it){
-  if(!it) return;
-  editingTextItem=it;
-  const m = $("#textModal"); if(!m) return;
-  $("#txtContent").value = it.text || "";
-  $("#txtColor").value   = it.color || "#ffffff";
-  const a = Math.round((it.alpha||1)*100);
-  $("#txtAlpha").value = a; $("#txtAlphaVal").textContent = a + "%";
-  const fs = it.fontSize || 36;
-  $("#txtSize").value = fs; $("#txtSizeVal").textContent = fs;
-  m.classList.add("open");
-  // Force focus to textarea so iOS pops the keyboard
-  setTimeout(()=>{ try{ const ta=$("#txtContent"); ta.focus(); ta.select(); }catch(_){} },120);
-}
-$("#txtAlpha").addEventListener("input",e=>$("#txtAlphaVal").textContent=e.target.value+"%");
-$("#txtSize").addEventListener("input",e=>$("#txtSizeVal").textContent=e.target.value);
-$("#txtCancel").addEventListener("click",()=>$("#textModal").classList.remove("open"));
-$("#txtSave").addEventListener("click",()=>{
-  if(!editingTextItem) return;
-  editingTextItem.text=$("#txtContent").value;
-  editingTextItem.color=$("#txtColor").value;
-  editingTextItem.alpha=parseInt($("#txtAlpha").value,10)/100;
-  editingTextItem.fontSize=parseInt($("#txtSize").value,10);
-  $("#textModal").classList.remove("open");
-  renderItems();
-});
 
 function renderThumbs(){
   const t=$("#thumbs"); t.innerHTML="";
@@ -881,7 +901,7 @@ async function shareFlow(){
   toast(I18N[state.lang].savedOk);
 }
 
-applyI18N(); applyTheme(); renderLib(); renderStrip1(); refreshStage();
+applyI18N(); applyTheme(); renderLib(); renderStrip1(); renderStrip2(); refreshStage();
 window.addEventListener("orientationchange",()=>setTimeout(fitCanvas,200));
 </script>
 </body>
