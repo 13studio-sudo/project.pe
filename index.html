@@ -39,7 +39,7 @@
   /* TOPBAR */
   .topbar{flex:0 0 auto;position:relative;background:var(--bg);}
   .strip{display:flex;border-bottom:1px solid var(--border);align-items:stretch;}
-  .strip.strip0{height:46px;align-items:center;padding-right:4px;}
+  .strip.strip0{height:54px;align-items:center;padding-right:4px;}
   .strip.strip1{height:42px;}
   .strip > .cell{
     flex:1 1 0;min-width:0;
@@ -52,7 +52,21 @@
     user-select:none;-webkit-user-select:none;
     padding:0 6px;height:100%;
   }
+  /* Strip 0 cells: 2-line "STEP N / NAME" layout */
+  .strip0 > .cell{
+    flex-direction:column;
+    line-height:1;
+    padding:4px 4px;
+    gap:2px;
+  }
+  .strip0 > .cell small{
+    font-size:10px;font-weight:500;letter-spacing:1.2px;opacity:.65;
+  }
+  .strip0 > .cell strong{
+    font-size:15px;font-weight:800;letter-spacing:.3px;
+  }
   .strip0 > .cell.active{background:var(--accent);color:var(--accent-fg);}
+  .strip0 > .cell.active small{opacity:1;}
   .strip1 > .cell{background:var(--panel);font-weight:600;}
   .strip1 > .cell.primary,
   .strip1 > .cell.active{background:var(--accent);color:var(--accent-fg);}
@@ -71,7 +85,7 @@
   }
   .menu-btn span{display:block;width:18px;height:2px;background:var(--fg);}
   .menu-panel{
-    position:absolute;top:46px;right:0;
+    position:absolute;top:54px;right:0;
     width:300px;max-width:92vw;
     background:var(--bg);border:1px solid var(--border);border-top:none;
     z-index:60;display:none;max-height:80dvh;overflow-y:auto;
@@ -261,7 +275,7 @@
           <div class="lib-list" id="wmList"></div>
         </div>
         <div class="menu-row copyright">
-          <span>&copy; 2026 13STUDIO &middot; <a href="https://13studio.co" target="_blank" rel="noopener">13studio.co</a> &middot; v0.0.5</span>
+          <span>&copy; 2026 13STUDIO &middot; <a href="https://13studio.co" target="_blank" rel="noopener">13studio.co</a> &middot; v0.0.6</span>
         </div>
       </div>
     </div>
@@ -338,7 +352,10 @@ const I18N = {
     language:"Language", theme:"Theme",
     light:"LIGHT", dark:"DARK",
     uploadWatermarks:"UPLOAD WATERMARKS",
-    modePhoto:"PHOTO", modeMark:"MARK", modeText:"TEXT", modeShare:"SHARE",
+    modePhoto:'<small>STEP 1</small><strong>PHOTO</strong>',
+    modeMark:'<small>STEP 2</small><strong>MARK</strong>',
+    modeText:'<small>STEP 3</small><strong>TEXT</strong>',
+    modeShare:'<small>STEP 4</small><strong>SHARE</strong>',
     subAlbum:"ALBUM", subFolder:"FOLDER", subCamera:"CAMERA",
     subAdd:"ADD", subSave:"SAVE",
     emptyHint:"Tap to select a photo",
@@ -355,7 +372,10 @@ const I18N = {
     language:"語言", theme:"主題",
     light:"亮色", dark:"暗色",
     uploadWatermarks:"上傳浮水印",
-    modePhoto:"照片", modeMark:"浮水印", modeText:"文字", modeShare:"分享",
+    modePhoto:'<small>步驟1</small><strong>照片</strong>',
+    modeMark:'<small>步驟2</small><strong>浮水印</strong>',
+    modeText:'<small>步驟3</small><strong>文字</strong>',
+    modeShare:'<small>步驟4</small><strong>分享</strong>',
     subAlbum:"相簿", subFolder:"資料夾", subCamera:"相機",
     subAdd:"新增", subSave:"儲存",
     emptyHint:"點此選擇照片",
@@ -744,26 +764,41 @@ async function addWatermarkToActive(src){
   state.selectedItemId=item.id; renderItems();
 }
 
-async function addTextFlow(){
+function addTextFlow(){
   const p=activePhoto(); if(!p) return;
   const wPct=0.6, hPct=0.12;
   const xPct=0.5 - wPct/2, yPct=0.45;
-  const color = await autoContrastColor(p,xPct,yPct,wPct,hPct);
   const item={id:uid(),type:"text",
     text:state.lang==="zh"?"輸入文字":"Your text",
-    color, fontSize:36, alpha:1, xPct,yPct,wPct,hPct};
-  p.items.push(item); state.selectedItemId=item.id;
-  renderItems(); openTextModal(item);
+    color:"#ffffff", fontSize:36, alpha:1, xPct,yPct,wPct,hPct};
+  p.items.push(item);
+  state.selectedItemId=item.id;
+  renderItems();
+  openTextModal(item);
+  // Improve color in the background (non-blocking, won't fail the modal)
+  autoContrastColor(p,xPct,yPct,wPct,hPct).then(c=>{
+    if(c && item.color === "#ffffff"){
+      item.color = c;
+      const cp = $("#txtColor"); if(cp && editingTextItem === item) cp.value = c;
+      renderItems();
+    }
+  }).catch(()=>{});
 }
 
 let editingTextItem=null;
 function openTextModal(it){
+  if(!it) return;
   editingTextItem=it;
-  $("#txtContent").value=it.text;
-  $("#txtColor").value=it.color;
-  $("#txtAlpha").value=Math.round(it.alpha*100); $("#txtAlphaVal").textContent=Math.round(it.alpha*100)+"%";
-  $("#txtSize").value=it.fontSize; $("#txtSizeVal").textContent=it.fontSize;
-  $("#textModal").classList.add("open");
+  const m = $("#textModal"); if(!m) return;
+  $("#txtContent").value = it.text || "";
+  $("#txtColor").value   = it.color || "#ffffff";
+  const a = Math.round((it.alpha||1)*100);
+  $("#txtAlpha").value = a; $("#txtAlphaVal").textContent = a + "%";
+  const fs = it.fontSize || 36;
+  $("#txtSize").value = fs; $("#txtSizeVal").textContent = fs;
+  m.classList.add("open");
+  // Force focus to textarea so iOS pops the keyboard
+  setTimeout(()=>{ try{ const ta=$("#txtContent"); ta.focus(); ta.select(); }catch(_){} },120);
 }
 $("#txtAlpha").addEventListener("input",e=>$("#txtAlphaVal").textContent=e.target.value+"%");
 $("#txtSize").addEventListener("input",e=>$("#txtSizeVal").textContent=e.target.value);
