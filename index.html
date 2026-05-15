@@ -29,7 +29,7 @@
   body{
     background:var(--bg);color:var(--fg);
     font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Segoe UI","PingFang TC","Microsoft JhengHei",Arial,sans-serif;
-    font-size:16px;line-height:1.3;
+    font-size:18px;line-height:1.3;
     display:flex;flex-direction:column;height:100dvh;
     -webkit-font-smoothing:antialiased;
   }
@@ -45,7 +45,7 @@
     flex:1 1 0;min-width:0;
     border:none;border-right:1px solid var(--border);
     background:var(--bg);color:var(--fg);
-    font-size:16px;font-weight:700;letter-spacing:.4px;
+    font-size:18px;font-weight:700;letter-spacing:.4px;
     display:flex;align-items:center;justify-content:center;text-align:center;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
     cursor:pointer;font-family:inherit;
@@ -60,10 +60,10 @@
     gap:2px;
   }
   .strip0 > .cell small{
-    font-size:10px;font-weight:500;letter-spacing:1.2px;opacity:.65;
+    font-size:11px;font-weight:500;letter-spacing:1.2px;opacity:.65;
   }
   .strip0 > .cell strong{
-    font-size:15px;font-weight:800;letter-spacing:.3px;
+    font-size:17px;font-weight:800;letter-spacing:.3px;
   }
   .strip0 > .cell.active{background:var(--accent);color:var(--accent-fg);}
   .strip0 > .cell.active small{opacity:1;}
@@ -83,21 +83,21 @@
   .strip2 > .ctrl:last-child{border-right:none;}
   .strip2 > .txt-edit{
     flex:1 1 0;min-width:0;
-    padding:0 12px;font-size:18px;font-weight:600;
+    padding:0 12px;font-size:20px;font-weight:600;
     text-align:left;cursor:text;outline:none;
   }
   .strip2 > .color-edit{
     flex:0 0 50px;width:50px;padding:6px;
   }
   .strip2 > .size-edit{
-    flex:0 0 44px;font-size:18px;font-weight:800;letter-spacing:.5px;
+    flex:0 0 44px;font-size:20px;font-weight:800;letter-spacing:.5px;
   }
   .strip2 > .label-edit{
-    flex:0 0 auto;padding:0 12px;font-size:13px;font-weight:700;
+    flex:0 0 auto;padding:0 12px;font-size:15px;font-weight:700;
     letter-spacing:.5px;color:var(--muted);
   }
   .strip2 > .val-edit{
-    flex:0 0 56px;padding:0 8px;font-size:15px;font-weight:700;
+    flex:0 0 56px;padding:0 8px;font-size:17px;font-weight:700;
     color:var(--fg);justify-content:flex-end;
   }
   .strip2 > .range-edit{
@@ -146,23 +146,23 @@
     display:flex;align-items:center;justify-content:space-between;gap:8px;
   }
   .menu-row:last-child{border-bottom:none;}
-  .menu-label{font-size:18px;font-weight:600;}
+  .menu-label{font-size:20px;font-weight:600;}
   .toggle-group{display:flex;}
   .toggle-group button{
     border:1px solid var(--border);background:var(--bg);color:var(--fg);
-    padding:10px 16px;font-size:16px;border-right:none;min-width:60px;font-weight:700;
+    padding:10px 16px;font-size:18px;border-right:none;min-width:60px;font-weight:700;
   }
   .toggle-group button:last-child{border-right:1px solid var(--border);}
   .toggle-group button.active{background:var(--accent);color:var(--accent-fg);}
   .menu-row .full-btn{
     display:block;width:100%;
     border:1px solid var(--border);background:var(--bg);color:var(--fg);
-    padding:14px;font-size:18px;text-align:center;font-weight:700;
+    padding:14px;font-size:20px;text-align:center;font-weight:700;
     cursor:pointer;box-sizing:border-box;
   }
   .menu-row.stack{flex-direction:column;align-items:stretch;}
   .menu-row.copyright{
-    padding:12px 14px;font-size:11px;color:var(--muted);
+    padding:12px 14px;font-size:12px;color:var(--muted);
     justify-content:center;letter-spacing:.5px;text-align:center;
     flex-wrap:wrap;
   }
@@ -175,9 +175,9 @@
   .lib-thumb .x{
     position:absolute;top:0;right:0;width:20px;height:20px;
     background:var(--bg);color:var(--fg);border:1px solid var(--border);
-    font-size:13px;line-height:18px;text-align:center;padding:0;
+    font-size:15px;line-height:18px;text-align:center;padding:0;
   }
-  .lib-empty{font-size:14px;color:var(--muted);padding:6px 0 0;}
+  .lib-empty{font-size:16px;color:var(--muted);padding:6px 0 0;}
 
   .hidden-input{
     position:absolute;left:-99999px;top:0;
@@ -210,7 +210,7 @@
   .item .h-br{bottom:-10px;right:-10px;cursor:nwse-resize;}
   .item .h-del{
     top:-10px;right:-10px;background:var(--select);border-color:var(--select);color:#fff;
-    font-size:13px;line-height:16px;text-align:center;font-weight:700;
+    font-size:15px;line-height:16px;text-align:center;font-weight:700;
   }
 
   /* EMPTY STATE — tappable label + animated hint */
@@ -218,7 +218,7 @@
     position:absolute;inset:0;
     display:flex;align-items:center;justify-content:center;text-align:center;
     padding:24px;color:var(--fg);
-    font-size:22px;font-weight:700;letter-spacing:.5px;
+    font-size:24px;font-weight:700;letter-spacing:.5px;
     cursor:pointer;
     animation:tap-hint 1.8s ease-in-out infinite;
   }
@@ -262,12 +262,12 @@
     background:var(--bg);color:var(--fg);border:1px solid var(--border);
     width:100%;max-width:400px;max-height:90dvh;overflow-y:auto;
   }
-  .modal-head{padding:16px;border-bottom:1px solid var(--border);font-size:18px;font-weight:700;letter-spacing:1px;}
+  .modal-head{padding:16px;border-bottom:1px solid var(--border);font-size:20px;font-weight:700;letter-spacing:1px;}
   .modal-body{padding:16px;display:flex;flex-direction:column;gap:14px;}
-  .field label{display:block;font-size:16px;font-weight:600;margin-bottom:6px;}
+  .field label{display:block;font-size:18px;font-weight:600;margin-bottom:6px;}
   .field textarea,.field input[type="text"]{
     width:100%;border:1px solid var(--border);background:var(--bg);color:var(--fg);
-    padding:12px;font-size:18px;
+    padding:12px;font-size:20px;
   }
   .field textarea{min-height:72px;resize:vertical;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -276,7 +276,7 @@
   .modal-foot{padding:16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
   .modal-foot button{
     border:1px solid var(--border);background:var(--bg);color:var(--fg);
-    padding:12px 20px;font-weight:700;font-size:17px;letter-spacing:.5px;
+    padding:12px 20px;font-weight:700;font-size:19px;letter-spacing:.5px;
   }
   .modal-foot button.primary{background:var(--accent);color:var(--accent-fg);}
 
@@ -288,7 +288,7 @@
 
   .toast{
     position:fixed;left:50%;bottom:60px;transform:translateX(-50%);
-    background:var(--accent);color:var(--accent-fg);padding:12px 18px;font-size:16px;
+    background:var(--accent);color:var(--accent-fg);padding:12px 18px;font-size:18px;
     border:1px solid var(--border);z-index:300;opacity:0;transition:opacity .2s;pointer-events:none;
     font-weight:700;letter-spacing:.5px;
   }
@@ -325,7 +325,7 @@
           <div class="lib-list" id="wmList"></div>
         </div>
         <div class="menu-row copyright">
-          <span>&copy; 2026 13STUDIO &middot; <a href="https://13studio.co" target="_blank" rel="noopener">13studio.co</a> &middot; v0.0.10</span>
+          <span>&copy; 2026 13STUDIO &middot; <a href="https://13studio.co" target="_blank" rel="noopener">13studio.co</a> &middot; v0.0.11</span>
         </div>
       </div>
     </div>
@@ -386,7 +386,7 @@ const I18N = {
     cancel:"CANCEL", save:"SAVE",
     pickWatermark:"PICK A WATERMARK",
     noWatermarks:"No watermarks yet. Use the menu to upload.",
-    maxWms:"Max 2 watermarks. Delete one first.",
+    maxWms:"Max 4 watermarks. Delete one first.",
     sharedOk:"Shared.", savedOk:"Saved.",
     folderTip:"Folder picker is desktop-only. Album opened.",
     needPhoto:"Load a photo first via PHOTO mode.",
@@ -407,7 +407,7 @@ const I18N = {
     cancel:"取消", save:"儲存",
     pickWatermark:"選擇浮水印",
     noWatermarks:"尚無浮水印，請從選單上傳。",
-    maxWms:"最多兩個浮水印，請先刪除一個。",
+    maxWms:"最多四個浮水印，請先刪除一個。",
     sharedOk:"已分享。", savedOk:"已儲存。",
     folderTip:"資料夾選取僅桌機可用，已改開相簿。",
     needPhoto:"請先在「照片」模式載入一張照片。",
@@ -446,7 +446,7 @@ function toast(msg){
 function fileToDataURL(f){return new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f);});}
 function loadImage(src){return new Promise((res,rej)=>{const i=new Image();if(!src.startsWith("data:")) i.crossOrigin="anonymous";i.onload=()=>res(i);i.onerror=rej;i.src=src;});}
 const DEFAULT_WM_ALPHA = 0.70;
-const MAX_WATERMARKS = 2;
+const MAX_WATERMARKS = 4;
 const SEED_WMS = [
   { id:"RADIUS_LOGO_15MAY26_09", wPct:0.80, pos:"bottom" },
   { id:"RADIUS_LOGO_15MAY26_11", wPct:0.20, pos:"top"    }
