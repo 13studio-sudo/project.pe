@@ -192,7 +192,10 @@
     background:#ffffff;overflow:hidden;touch-action:none;
   }
   .canvas img.bg{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
-  .item{position:absolute;border:1px dashed transparent;touch-action:none;user-select:none;-webkit-user-select:none;}
+  .item{position:absolute;border:1px dashed transparent;touch-action:none;user-select:none;-webkit-user-select:none;
+    transition:opacity .45s ease-in-out;
+  }
+  .item.step1-hidden{opacity:0;pointer-events:none;}
   .item.selected{border-color:var(--select);}
   .item img{width:100%;height:100%;display:block;pointer-events:none;}
   .item img.cover{object-fit:cover;}
@@ -375,7 +378,7 @@
   <div class="stage" id="stage">
     <div class="canvas" id="canvas" style="display:none;">
       <img class="bg" id="bgImg" alt="">
-      <video class="bg" id="bgVideo" style="display:none;width:100%;height:100%;object-fit:contain;pointer-events:none;" playsinline muted loop autoplay></video>
+      <video class="bg" id="bgVideo" style="display:none;width:100%;height:100%;object-fit:contain;pointer-events:none;" playsinline muted loop></video>
     </div>
     <label class="empty" id="emptyState" for="fileAlbum" data-i18n="emptyHint">Tap to select a photo or video</label>
   </div>
@@ -499,38 +502,59 @@ function loadImage(src){return new Promise((res,rej)=>{const i=new Image();if(!s
 function loadVideo(src){
   return new Promise((res,rej)=>{
     const v=document.createElement("video");
-    v.muted=true; v.playsInline=true; v.preload="metadata"; v.crossOrigin="anonymous";
-    v.onloadedmetadata=()=>res(v);
-    v.onerror=()=>rej(new Error("video load error"));
+    v.muted=true; v.playsInline=true; v.preload="metadata";
+    // crossOrigin only for actual remote URLs — setting it on blob: / data: can
+    // make iOS Safari treat the stream as tainted and refuse to load.
+    if(!src.startsWith("blob:") && !src.startsWith("data:")) v.crossOrigin="anonymous";
+    let done=false;
+    const finish=(ok)=>{ if(done) return; done=true; ok?res(v):rej(new Error("video load error")); };
+    v.addEventListener("loadedmetadata",()=>finish(true),{once:true});
+    v.addEventListener("loadeddata",   ()=>finish(true),{once:true});
+    v.addEventListener("error",        ()=>finish(false),{once:true});
     v.src=src;
   });
 }
-// Capture a still frame from a video as a PNG data URL (used for thumbnails and contrast probing)
-function captureVideoFrame(videoEl, atSec=0){
+// Capture a still frame from a video as a JPEG data URL (used for thumbnails
+// and for the auto-contrast text color probe). iOS Safari requires we wait
+// across multiple readiness events and may need the source video to "wake up"
+// before drawImage produces actual pixels.
+function captureVideoFrame(srcOrEl, atSec=0){
   return new Promise((res,rej)=>{
     const v=document.createElement("video");
-    v.muted=true; v.playsInline=true; v.crossOrigin="anonymous";
-    v.src=videoEl.src || videoEl.currentSrc;
-    const onReady=()=>{
-      v.removeEventListener("seeked",onReady);
-      v.removeEventListener("loadeddata",seek);
+    v.muted=true; v.playsInline=true;
+    const src = (typeof srcOrEl === "string") ? srcOrEl : (srcOrEl.src || srcOrEl.currentSrc);
+    if(!src.startsWith("blob:") && !src.startsWith("data:")) v.crossOrigin="anonymous";
+    let captured=false;
+    const tryCapture=()=>{
+      if(captured) return;
+      if(!v.videoWidth || !v.videoHeight) return;
       try{
         const c=document.createElement("canvas");
-        c.width=v.videoWidth||320; c.height=v.videoHeight||180;
+        c.width=v.videoWidth; c.height=v.videoHeight;
         const ctx=c.getContext("2d");
         ctx.drawImage(v,0,0,c.width,c.height);
+        captured=true;
         res(c.toDataURL("image/jpeg",0.82));
-      }catch(e){ rej(e); }
+      }catch(_){ /* try again on the next event */ }
     };
-    const seek=()=>{
+    const seekToTarget=()=>{
       try{
-        const t=Math.min(Math.max(0,atSec), Math.max(0,(v.duration||0)-0.05));
+        const dur=(v.duration && isFinite(v.duration)) ? v.duration : 0;
+        const t=Math.min(Math.max(0.05,atSec), Math.max(0.05, dur-0.05));
         v.currentTime=t;
-      }catch(_){ onReady(); }
+      }catch(_){ tryCapture(); }
     };
-    v.addEventListener("loadeddata",seek,{once:true});
-    v.addEventListener("seeked",onReady,{once:true});
-    v.addEventListener("error",()=>rej(new Error("frame capture failed")),{once:true});
+    v.addEventListener("loadedmetadata", seekToTarget, {once:true});
+    v.addEventListener("seeked",     tryCapture);
+    v.addEventListener("canplay",    tryCapture);
+    v.addEventListener("loadeddata", tryCapture);
+    v.addEventListener("error", ()=>{ if(!captured) rej(new Error("frame capture failed")); }, {once:true});
+    v.src=src;
+    setTimeout(()=>{
+      if(captured) return;
+      if(v.videoWidth) tryCapture();
+      if(!captured) rej(new Error("frame capture timeout"));
+    }, 5000);
   });
 }
 const DEFAULT_WM_ALPHA = 0.70;
@@ -650,6 +674,17 @@ function setMode(m){
   renderStrip1();
   renderStrip2();
   refreshStage();
+  applyModeVisibility();
+}
+// Toggle .step1-hidden on existing watermark items so they fade in/out
+// when the user moves between Step 1 (PHOTO) and the other steps.
+function applyModeVisibility(){
+  const hide = state.mode === "photo";
+  document.querySelectorAll('.item').forEach(el=>{
+    if(el.dataset.type === "watermark"){
+      el.classList.toggle("step1-hidden", hide);
+    }
+  });
 }
 
 function renderStrip2(){
@@ -789,22 +824,40 @@ function refreshStage(){
   $("#"+id).addEventListener("change",e=>handleFiles(e.target.files,e.target));
 });
 const MAX_VIDEO_SECONDS = 60;
+// On iOS Safari, File.type can be empty for certain camera-roll items.
+// Fall back to a filename-extension test so we still classify correctly.
+function classifyFile(f){
+  const t = (f.type || "").toLowerCase();
+  if(t.startsWith("image/")) return "image";
+  if(t.startsWith("video/")) return "video";
+  const n = (f.name || "").toLowerCase();
+  if(/\.(jpe?g|png|gif|webp|bmp|heic|heif|avif|tiff?)$/.test(n)) return "image";
+  if(/\.(mov|mp4|m4v|webm|avi|qt|3gp|3g2|mkv)$/.test(n))         return "video";
+  return null;
+}
 async function handleFiles(files,input){
-  const list=[...files].filter(f=>f.type.startsWith("image/") || f.type.startsWith("video/"));
-  if(!list.length){ if(input) input.value=""; return; }
-  for(const f of list){
-    const isVideo = f.type.startsWith("video/");
-    const src=await fileToDataURL(f);
+  const tagged = [...files].map(f => ({f, kind: classifyFile(f)})).filter(x => x.kind);
+  if(!tagged.length){ if(input) input.value=""; return; }
+  let addedAny = false;
+  for(const {f, kind} of tagged){
+    const isVideo = kind === "video";
+    // VIDEO PATH: use a blob: URL. Reading a video as a base64 data URL is
+    // unreliable on iOS Safari (HTMLMediaElement has a small data: src limit),
+    // which is why videos recorded via the camera input failed to import on iPhone.
+    // PHOTO PATH: keep the data URL — small, embeds cleanly, and lets us reuse the
+    // existing canvas export pipeline without changes.
+    const src = isVideo ? URL.createObjectURL(f) : await fileToDataURL(f);
     let photo;
     if(isVideo){
       try{
-        const v=await loadVideo(src);
+        const v = await loadVideo(src);
         if(v.duration && v.duration > MAX_VIDEO_SECONDS){
           toast(I18N[state.lang].videoTooLong);
+          try{ URL.revokeObjectURL(src); }catch(_){}
           continue;
         }
         let poster=null;
-        try{ poster = await captureVideoFrame(v, 0); }catch(_){}
+        try{ poster = await captureVideoFrame(src, 0); }catch(_){}
         photo={
           id:uid(), src,
           mediaType:"video",
@@ -815,19 +868,29 @@ async function handleFiles(files,input){
           items:[]
         };
       }catch(_){
-        // Fallback: skip on hard failure
+        try{ URL.revokeObjectURL(src); }catch(_){}
         continue;
       }
     } else {
-      const img=await loadImage(src);
-      photo={id:uid(),src,mediaType:"photo",natW:img.naturalWidth,natH:img.naturalHeight,items:[]};
+      try{
+        const img=await loadImage(src);
+        photo={id:uid(),src,mediaType:"photo",natW:img.naturalWidth,natH:img.naturalHeight,items:[]};
+      }catch(_){ continue; }
     }
     applySeedsToPhoto(photo);
     state.photos.push(photo);
+    addedAny = true;
   }
   state.activeIdx = state.activeIdx<0 ? 0 : state.activeIdx;
   loadActive(); renderThumbs(); renderStrip1(); renderStrip2(); refreshStage();
   if(input) input.value="";
+  // Auto-advance to MARK so the watermarks fade in. The renderItems pass above
+  // created watermark items with .step1-hidden (since mode is still "photo"),
+  // so toggling mode here triggers the CSS opacity transition.
+  if(addedAny && state.photos.length){
+    // Two rAFs ensure the initial dimmed paint is committed before we remove the class.
+    requestAnimationFrame(()=>requestAnimationFrame(()=>setMode("mark")));
+  }
 }
 
 function applySeedsToPhoto(photo){
@@ -908,8 +971,10 @@ function renderItems(){
   const p=activePhoto(); if(!p) return;
   p.items.forEach(it=>{
     const el=document.createElement("div");
-    el.className="item"; el.dataset.id=it.id;
+    el.className="item"; el.dataset.id=it.id; el.dataset.type=it.type;
     if(it.id===state.selectedItemId) el.classList.add("selected");
+    // In Step 1 (photo mode) watermarks are hidden — they fade in once user advances.
+    if(it.type==="watermark" && state.mode==="photo") el.classList.add("step1-hidden");
     positionItem(el,it);
     if(it.type==="watermark"){
       const im=document.createElement("img"); im.src=it.src; im.style.opacity=it.alpha;
@@ -1281,7 +1346,10 @@ async function exportVideoWithOverlays(p){
 
   // Offscreen video (independent of preview so playback isn't fighting the UI)
   const off=document.createElement("video");
-  off.src=p.src; off.muted=false; off.playsInline=true; off.crossOrigin="anonymous";
+  off.src=p.src; off.muted=false; off.playsInline=true;
+  // Only flag CORS for genuinely cross-origin sources. iOS taints blob streams
+  // when crossOrigin is set, which can later break drawImage into the canvas.
+  if(!p.src.startsWith("blob:") && !p.src.startsWith("data:")) off.crossOrigin="anonymous";
   await new Promise((res,rej)=>{
     off.onloadedmetadata=()=>res();
     off.onerror=()=>rej(new Error("video meta error"));
@@ -1365,10 +1433,16 @@ async function exportVideoWithOverlays(p){
     off.onended = () => res();
     off.onerror = () => rej(new Error("video play error"));
     off.currentTime = 0;
-    off.play().then(()=>{
-      rec.start(100);
+    const startRec = () => {
+      try{ rec.start(100); }catch(_){}
       requestAnimationFrame(drawFrame);
-    }).catch(rej);
+    };
+    off.play().then(startRec).catch(()=>{
+      // iOS Safari may refuse sound playback in this context. Retry muted so
+      // we at least produce a silent video with overlays burned in.
+      try{ off.muted = true; }catch(_){}
+      off.play().then(startRec).catch(rej);
+    });
   }).catch(()=>{});
 
   stopped = true;
