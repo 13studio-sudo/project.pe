@@ -502,16 +502,45 @@ function loadImage(src){return new Promise((res,rej)=>{const i=new Image();if(!s
 function loadVideo(src){
   return new Promise((res,rej)=>{
     const v=document.createElement("video");
-    v.muted=true; v.playsInline=true; v.preload="metadata";
-    // crossOrigin only for actual remote URLs — setting it on blob: / data: can
-    // make iOS Safari treat the stream as tainted and refuse to load.
+    v.muted=true; v.playsInline=true;
+    // preload="auto" rather than "metadata" — iOS Safari sometimes never fires
+    // loadedmetadata for MOV files unless it actually fetches the bytes.
+    v.preload="auto";
     if(!src.startsWith("blob:") && !src.startsWith("data:")) v.crossOrigin="anonymous";
     let done=false;
     const finish=(ok)=>{ if(done) return; done=true; ok?res(v):rej(new Error("video load error")); };
     v.addEventListener("loadedmetadata",()=>finish(true),{once:true});
     v.addEventListener("loadeddata",   ()=>finish(true),{once:true});
+    v.addEventListener("canplay",      ()=>finish(true),{once:true});
     v.addEventListener("error",        ()=>finish(false),{once:true});
+    setTimeout(()=>{
+      // iOS sometimes never fires the events but still loads the file.
+      // If we have any usable metadata, accept the video anyway.
+      if(v.videoWidth || v.videoHeight || (v.duration && isFinite(v.duration))) finish(true);
+      else finish(false);
+    }, 5000);
     v.src=src;
+  });
+}
+// iOS Safari reports `duration` as Infinity for freshly captured MOV files
+// until the element is seeked past the end. Force a real value by seeking
+// to a huge time and waiting for `durationchange`.
+function resolveVideoDuration(v){
+  return new Promise(res=>{
+    if(v.duration && isFinite(v.duration) && v.duration > 0){ res(v.duration); return; }
+    let done=false;
+    const finish=(d)=>{
+      if(done) return; done=true;
+      v.removeEventListener("durationchange", onDur);
+      try{ v.currentTime = 0; }catch(_){}
+      res(d);
+    };
+    const onDur=()=>{
+      if(v.duration && isFinite(v.duration) && v.duration > 0) finish(v.duration);
+    };
+    v.addEventListener("durationchange", onDur);
+    try{ v.currentTime = 1e101; }catch(_){}
+    setTimeout(()=>finish(0), 2000); // 0 = unknown; we'll accept the video
   });
 }
 // Capture a still frame from a video as a JPEG data URL (used for thumbnails
@@ -849,28 +878,32 @@ async function handleFiles(files,input){
     const src = isVideo ? URL.createObjectURL(f) : await fileToDataURL(f);
     let photo;
     if(isVideo){
+      // Try to probe metadata. If anything fails, we STILL import the video
+      // with sensible defaults — better to let the user see their clip than
+      // silently drop it because iOS didn't fire an event.
+      let v=null, duration=0, natW=1280, natH=720, poster=null;
       try{
-        const v = await loadVideo(src);
-        if(v.duration && v.duration > MAX_VIDEO_SECONDS){
-          toast(I18N[state.lang].videoTooLong);
-          try{ URL.revokeObjectURL(src); }catch(_){}
-          continue;
-        }
-        let poster=null;
-        try{ poster = await captureVideoFrame(src, 0); }catch(_){}
-        photo={
-          id:uid(), src,
-          mediaType:"video",
-          natW: v.videoWidth || 1280,
-          natH: v.videoHeight || 720,
-          duration: v.duration || 0,
-          posterSrc: poster,
-          items:[]
-        };
-      }catch(_){
+        v = await loadVideo(src);
+        duration = await resolveVideoDuration(v);
+        natW = v.videoWidth  || natW;
+        natH = v.videoHeight || natH;
+      }catch(_){ /* keep defaults */ }
+      // Only reject when we have a confirmed finite duration over the cap.
+      // Infinity / 0 / NaN = unknown → accept the video.
+      if(duration > 0 && duration > MAX_VIDEO_SECONDS){
+        toast(I18N[state.lang].videoTooLong);
         try{ URL.revokeObjectURL(src); }catch(_){}
         continue;
       }
+      try{ poster = await captureVideoFrame(src, 0); }catch(_){}
+      photo = {
+        id:uid(), src,
+        mediaType:"video",
+        natW, natH,
+        duration: duration || 0,
+        posterSrc: poster,
+        items:[]
+      };
     } else {
       try{
         const img=await loadImage(src);
@@ -1352,8 +1385,14 @@ async function exportVideoWithOverlays(p){
   if(!p.src.startsWith("blob:") && !p.src.startsWith("data:")) off.crossOrigin="anonymous";
   await new Promise((res,rej)=>{
     off.onloadedmetadata=()=>res();
+    off.onloadeddata=()=>res();
+    off.oncanplay=()=>res();
     off.onerror=()=>rej(new Error("video meta error"));
+    setTimeout(()=>res(), 5000); // proceed even if iOS never fires the event
   });
+  // Resolve Infinity-duration (iOS captured MOV) before recording, otherwise
+  // the `ended` event never arrives because the file has no known end.
+  const dur = await resolveVideoDuration(off);
   // Some browsers need a paint tick to grab dimensions
   const W = off.videoWidth || p.natW || 1280;
   const H = off.videoHeight || p.natH || 720;
@@ -1430,9 +1469,19 @@ async function exportVideoWithOverlays(p){
   }
 
   await new Promise((res,rej)=>{
-    off.onended = () => res();
+    let resolved=false;
+    const finish=()=>{ if(resolved) return; resolved=true; res(); };
+    off.onended = finish;
     off.onerror = () => rej(new Error("video play error"));
     off.currentTime = 0;
+    // Hard stop after duration (+ small grace) in case `ended` never fires —
+    // common for iOS-captured MOV clips re-loaded via blob URL.
+    if(dur > 0){
+      setTimeout(finish, Math.ceil((dur + 0.5) * 1000));
+    } else {
+      // Unknown duration → cap recording at MAX_VIDEO_SECONDS so we never hang.
+      setTimeout(finish, MAX_VIDEO_SECONDS * 1000);
+    }
     const startRec = () => {
       try{ rec.start(100); }catch(_){}
       requestAnimationFrame(drawFrame);
